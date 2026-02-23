@@ -149,17 +149,23 @@ export async function POST(request: Request) {
         let imageUrl = "";
 
         if (file && file.size > 0) {
-            log(`Vercel Blob アップロード開始: ${file.name} (${file.size} bytes)`);
+            log(`Vercel Blob アップロード開始: ${file.name} (${file.size} bytes) type="${file.type}"`);
 
             try {
                 const arrayBuffer = await file.arrayBuffer();
                 const buffer = Buffer.from(arrayBuffer);
-                const ext = file.name.split(".").pop() ?? "jpg";
+
+                // 拡張子と MIME タイプを JPEG に正規化（compress 済みのはずだが念のため）
+                const ext = file.name.toLowerCase().endsWith(".jpg") ? "jpg"
+                    : file.name.split(".").pop() ?? "jpg";
+                const contentType = file.type.startsWith("image/") ? file.type : "image/jpeg";
+
+                // Blob のパス名（ランダム文字列でファイル名衝突を防ぐ）
                 const blobPath = `prints/${reqId}-${Math.random().toString(36).slice(2)}.${ext}`;
-                const contentType = file.type || "image/jpeg";
+                log(`Blob path: "${blobPath}"  contentType: "${contentType}"  bufferSize: ${buffer.length} bytes`);
 
-                log(`Blob path: ${blobPath}  contentType: ${contentType}`);
-
+                // @vercel/blob v2 は BLOB_READ_WRITE_TOKEN 環境変数を自動参照する。
+                // 明示的に token を渡すことで .env での動作も保証する。
                 const blob = await put(blobPath, buffer, {
                     access: "public",
                     contentType,
@@ -167,11 +173,13 @@ export async function POST(request: Request) {
                 });
 
                 imageUrl = blob.url;
-                log(`✅ Vercel Blob アップロード成功: ${imageUrl}`);
+                log(`✅ Vercel Blob アップロード成功`);
+                log(`   url        : ${imageUrl}`);
+                log(`   contentType: ${blob.contentType}`);
             } catch (blobErr) {
                 err("❌ Vercel Blob アップロード失敗:");
                 dumpError("blobError", blobErr);
-                // 画像があるのにアップロード失敗した場合は全体をエラーにする
+                // 画像があるのにアップロード失敗した場合は全体をエラーにして DB 保存もしない
                 return NextResponse.json(
                     {
                         error: "画像のアップロードに失敗しました。BLOB_READ_WRITE_TOKEN を確認してください。",
