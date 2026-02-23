@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { PostgrestError } from "@supabase/supabase-js";
 import { createServerClient } from "../../../lib/supabase";
 
 interface EventPayload {
@@ -55,14 +56,12 @@ function dumpError(label: string, e: unknown): void {
     err(`${label} — raw toString:`, String(e));
 }
 
-/** RLS 違反エラーかどうか判定する */
-function isRlsError(e: unknown): boolean {
-    if (!e || typeof e !== "object") return false;
-    const o = e as Record<string, unknown>;
+/** RLS 違反エラーかどうか判定する（PostgrestError を直接受け取る） */
+function isRlsError(e: PostgrestError): boolean {
     return (
-        o.code === "42501" ||
-        String(o.message ?? "").toLowerCase().includes("policy") ||
-        String(o.message ?? "").toLowerCase().includes("permission denied")
+        e.code === "42501" ||
+        e.message.toLowerCase().includes("policy") ||
+        e.message.toLowerCase().includes("permission denied")
     );
 }
 
@@ -247,7 +246,7 @@ export async function POST(request: Request) {
                 {
                     error: "events テーブルへの保存に失敗しました",
                     code: "DB_ERROR",
-                    detail: (eventsError as Record<string, unknown>).message,
+                    detail: eventsError.message,
                 },
                 { status: 500 }
             );
