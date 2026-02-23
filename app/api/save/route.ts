@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { put } from "@vercel/blob";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { createServerClient } from "../../../lib/supabase";
 
@@ -22,10 +23,6 @@ function err(...args: unknown[]) {
     console.error(TAG, ...args);
 }
 
-/**
- * Supabase のエラーオブジェクトは独自クラスのため JSON.stringify({...spread}) では
- * 列挙不可プロパティが落ちる。Object.getOwnPropertyNames で全プロパティを強制取得する。
- */
 function dumpError(label: string, e: unknown): void {
     if (e === null || e === undefined) {
         err(`${label}: null / undefined`);
@@ -35,28 +32,21 @@ function dumpError(label: string, e: unknown): void {
         err(`${label}:`, e);
         return;
     }
-
     const obj: Record<string, unknown> = {};
     for (const key of Object.getOwnPropertyNames(e)) {
         obj[key] = (e as Record<string, unknown>)[key];
     }
-
-    // さらに Supabase PostgREST エラーの既知フィールドを明示
     const known = {
         message: (e as Record<string, unknown>).message,
         code: (e as Record<string, unknown>).code,
         details: (e as Record<string, unknown>).details,
         hint: (e as Record<string, unknown>).hint,
         status: (e as Record<string, unknown>).status,
-        statusText: (e as Record<string, unknown>).statusText,
     };
-
-    err(`${label} — known fields:`, JSON.stringify(known, null, 2));
-    err(`${label} — all own properties:`, JSON.stringify(obj, null, 2));
-    err(`${label} — raw toString:`, String(e));
+    err(`${label} — known:`, JSON.stringify(known, null, 2));
+    err(`${label} — all props:`, JSON.stringify(obj, null, 2));
 }
 
-/** RLS 違反エラーかどうか判定する（PostgrestError を直接受け取る） */
 function isRlsError(e: PostgrestError): boolean {
     return (
         e.code === "42501" ||
@@ -68,27 +58,39 @@ function isRlsError(e: PostgrestError): boolean {
 // ─── ルートハンドラ ────────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
-    const reqId = Date.now().toString(36); // リクエスト追跡用 ID
+    const reqId = Date.now().toString(36);
     log(`===== POST 開始 reqId=${reqId} =====`);
 
     // ── 0. 環境変数チェック ──────────────────────────────────────────────────
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
 
-    log(`env NEXT_PUBLIC_SUPABASE_URL: ${supabaseUrl ? `"${supabaseUrl.slice(0, 30)}..."` : "❌ 未設定"}`);
-    log(`env SUPABASE_SERVICE_ROLE_KEY: ${serviceRoleKey ? `"${serviceRoleKey.slice(0, 10)}..."（長さ ${serviceRoleKey.length}）` : "❌ 未設定"}`);
+    log(`env NEXT_PUBLIC_SUPABASE_URL : ${supabaseUrl ? `"${supabaseUrl.slice(0, 40)}..."` : "❌ 未設定"}`);
+    log(`env SUPABASE_SERVICE_ROLE_KEY: ${serviceRoleKey ? `set (長さ ${serviceRoleKey.length})` : "❌ 未設定"}`);
+    log(`env BLOB_READ_WRITE_TOKEN    : ${blobToken ? `set (長さ ${blobToken.length})` : "❌ 未設定"}`);
 
-    if (!supabaseUrl || supabaseUrl.startsWith("your_")) {
-        err("NEXT_PUBLIC_SUPABASE_URL が未設定または placeholder のままです");
+    if (!supabaseUrl || supabaseUrl.startsWith("your_") || supabaseUrl.startsWith("hhttps")) {
+        err("NEXT_PUBLIC_SUPABASE_URL が不正です:", supabaseUrl);
         return NextResponse.json(
-            { error: "Supabase URL が設定されていません", code: "ENV_MISSING" },
+            { error: "Supabase URL が正しく設定されていません（hhttps:// などのタイポがないか確認）", code: "ENV_MISSING" },
             { status: 500 }
         );
     }
     if (!serviceRoleKey || serviceRoleKey.startsWith("your_")) {
-        err("SUPABASE_SERVICE_ROLE_KEY が未設定または placeholder のままです");
+        err("SUPABASE_SERVICE_ROLE_KEY が未設定または placeholder です");
         return NextResponse.json(
             { error: "Supabase サービスロールキーが設定されていません", code: "ENV_MISSING" },
+            { status: 500 }
+        );
+    }
+    if (!blobToken || blobToken.startsWith("your_")) {
+        err("BLOB_READ_WRITE_TOKEN が未設定または placeholder です");
+        return NextResponse.json(
+            {
+                error: "Vercel Blob トークンが設定されていません。Vercel ダッシュボード → Storage → Blob → Connect to project で BLOB_READ_WRITE_TOKEN を取得してください。",
+                code: "BLOB_TOKEN_MISSING",
+            },
             { status: 500 }
         );
     }
@@ -99,9 +101,9 @@ export async function POST(request: Request) {
         const file = formData.get("file") as File | null;
         const eventsJson = formData.get("events") as string | null;
 
-        log(`file: name="${file?.name ?? "なし"}" size=${file?.size ?? 0} bytes`);
+        log(`file: name="${file?.name ?? "なし"}" size=${file?.size ?? 0} bytes type="${file?.type ?? "なし"}"`);
         log(`eventsJson length: ${eventsJson?.length ?? 0} chars`);
-        log(`eventsJson (先頭200文字): ${eventsJson?.slice(0, 200)}`);
+        log(`eventsJson (先頭300文字): ${eventsJson?.slice(0, 300)}`);
 
         if (!eventsJson) {
             err("events フィールドが FormData に含まれていません");
@@ -118,12 +120,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Invalid events JSON", code: "PARSE_ERROR" }, { status: 400 });
         }
 
-        if (!Array.isArray(events)) {
-            err("パース結果が配列ではありません:", typeof events, events);
-            return NextResponse.json({ error: "Events must be an array", code: "NOT_ARRAY" }, { status: 400 });
-        }
-        if (events.length === 0) {
-            err("events が空配列です");
+        if (!Array.isArray(events) || events.length === 0) {
+            err("events が空または配列でありません:", events);
             return NextResponse.json({ error: "Events array is empty", code: "EMPTY_EVENTS" }, { status: 400 });
         }
 
@@ -142,38 +140,54 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Supabase クライアント生成エラー", code: "CLIENT_ERROR" }, { status: 500 });
         }
 
-        // ── 4. Storage 画像アップロード ──────────────────────────────────────
+        // ── 4. Vercel Blob への画像アップロード ──────────────────────────────
+        //
+        //  ファイルが存在する場合、アップロードは必須とする。
+        //  失敗した場合は DB 登録も行わず、エラーを返す。
+        //  （空 URL のまま prints テーブルに登録されるのを防ぐ）
+        //
         let imageUrl = "";
+
         if (file && file.size > 0) {
-            log(`Storage アップロード開始: ${file.name} (${file.size} bytes)`);
+            log(`Vercel Blob アップロード開始: ${file.name} (${file.size} bytes)`);
+
             try {
                 const arrayBuffer = await file.arrayBuffer();
                 const buffer = Buffer.from(arrayBuffer);
                 const ext = file.name.split(".").pop() ?? "jpg";
-                const fileName = `${reqId}-${Math.random().toString(36).slice(2)}.${ext}`;
-                log(`Storage ファイル名: ${fileName}`);
+                const blobPath = `prints/${reqId}-${Math.random().toString(36).slice(2)}.${ext}`;
+                const contentType = file.type || "image/jpeg";
 
-                const { data: storageData, error: storageError } = await supabase.storage
-                    .from("prints")
-                    .upload(fileName, buffer, { contentType: file.type || "image/jpeg", upsert: false });
+                log(`Blob path: ${blobPath}  contentType: ${contentType}`);
 
-                if (storageError) {
-                    err("Storage アップロード失敗（スキップして継続）:");
-                    dumpError("storageError", storageError);
-                } else {
-                    const { data: urlData } = supabase.storage.from("prints").getPublicUrl(storageData.path);
-                    imageUrl = urlData.publicUrl;
-                    log("Storage アップロード成功 publicUrl:", imageUrl);
-                }
-            } catch (storageException) {
-                err("Storage アップロード中に例外（スキップして継続）:");
-                dumpError("storageException", storageException);
+                const blob = await put(blobPath, buffer, {
+                    access: "public",
+                    contentType,
+                    token: blobToken,
+                });
+
+                imageUrl = blob.url;
+                log(`✅ Vercel Blob アップロード成功: ${imageUrl}`);
+            } catch (blobErr) {
+                err("❌ Vercel Blob アップロード失敗:");
+                dumpError("blobError", blobErr);
+                // 画像があるのにアップロード失敗した場合は全体をエラーにする
+                return NextResponse.json(
+                    {
+                        error: "画像のアップロードに失敗しました。BLOB_READ_WRITE_TOKEN を確認してください。",
+                        code: "BLOB_UPLOAD_FAILED",
+                        detail: blobErr instanceof Error ? blobErr.message : String(blobErr),
+                    },
+                    { status: 500 }
+                );
             }
         } else {
-            log("ファイルなし or サイズ0 — Storage アップロードをスキップ");
+            log("ファイルなし or サイズ0 — Blob アップロードをスキップ");
         }
 
         // ── 5. prints テーブル INSERT ────────────────────────────────────────
+        //  imageUrl が空文字の場合は file が渡されなかったケース。
+        //  file があるのに imageUrl が空なら上のステップでエラーになっているため、ここには到達しない。
         const printInsertData = { image_url: imageUrl };
         log("prints INSERT 送信データ:", JSON.stringify(printInsertData));
 
@@ -223,7 +237,7 @@ export async function POST(request: Request) {
             dumpError("eventsError", eventsError);
             err("失敗時の eventRows:", JSON.stringify(eventRows, null, 2));
 
-            // ロールバック
+            // ロールバック: prints レコードを削除
             log("ロールバック開始 — prints id:", print.id, "を削除します");
             const { error: rollbackError } = await supabase.from("prints").delete().eq("id", print.id);
             if (rollbackError) {
@@ -252,13 +266,14 @@ export async function POST(request: Request) {
             );
         }
 
-        log(`✅ events INSERT 成功 (${eventsData?.length ?? eventRows.length}件) ids:`, eventsData?.map((r) => r.id));
+        log(`✅ events INSERT 成功 (${eventsData?.length ?? eventRows.length}件)`);
         log(`===== POST 完了 reqId=${reqId} =====`);
 
         return NextResponse.json({
             success: true,
             printId: print.id,
             eventCount: eventsData?.length ?? eventRows.length,
+            imageUrl,
         });
     } catch (error: unknown) {
         err("===== 予期しない例外が発生 =====");

@@ -118,6 +118,12 @@ export default function UploadPage() {
                     const message: string =
                         code === "RLS_ERROR"
                             ? "Supabase の RLS（行レベルセキュリティ）ポリシーが原因で保存できませんでした。events テーブルへの INSERT ポリシーを設定してください。"
+                        : code === "BLOB_TOKEN_MISSING"
+                            ? "Vercel Blob のトークンが未設定です。Vercel ダッシュボード → Storage → Blob で BLOB_READ_WRITE_TOKEN を設定してください。"
+                        : code === "BLOB_UPLOAD_FAILED"
+                            ? `画像のアップロードに失敗しました。${saveBody.detail ?? ""}`
+                        : code === "ENV_MISSING"
+                            ? saveBody.error ?? "環境変数が正しく設定されていません。"
                             : saveBody.error ?? "保存に失敗しました";
                     setSaveError({ code, message });
                 }
