@@ -120,11 +120,12 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Invalid events JSON", code: "PARSE_ERROR" }, { status: 400 });
         }
 
-        if (!Array.isArray(events) || events.length === 0) {
-            err("events が空または配列でありません:", events);
-            return NextResponse.json({ error: "Events array is empty", code: "EMPTY_EVENTS" }, { status: 400 });
+        if (!Array.isArray(events)) {
+            err("events が配列でありません:", typeof events);
+            return NextResponse.json({ error: "Events must be an array", code: "NOT_ARRAY" }, { status: 400 });
         }
 
+        log(`events 件数: ${events.length}${events.length === 0 ? " (画像のみ保存)" : ""}`);
         events.forEach((ev, i) => {
             log(`  events[${i}]: title="${ev.title}" date="${ev.date}" time="${ev.time}" needsReminder=${ev.needsReminder} advice長さ=${ev.advice?.length ?? 0}`);
         });
@@ -222,65 +223,73 @@ export async function POST(request: Request) {
 
         log("✅ prints INSERT 成功 id:", print.id);
 
-        // ── 6. events テーブル INSERT ────────────────────────────────────────
-        const eventRows = events.map((ev) => ({
-            print_id: print.id,
-            title: ev.title ?? "",
-            date: ev.date ?? "",
-            time: ev.time ?? "",
-            needs_reminder: ev.needsReminder ?? false,
-            advice: ev.advice ?? "",
-        }));
+        // ── 6. events テーブル INSERT（0件の場合はスキップ）────────────────
+        let savedEventCount = 0;
 
-        log(`events INSERT 送信データ (${eventRows.length}件):`);
-        eventRows.forEach((row, i) => log(`  row[${i}]:`, JSON.stringify(row)));
+        if (events.length > 0) {
+            const eventRows = events.map((ev) => ({
+                print_id: print.id,
+                title: ev.title ?? "",
+                date: ev.date ?? "",
+                time: ev.time ?? "",
+                needs_reminder: ev.needsReminder ?? false,
+                advice: ev.advice ?? "",
+            }));
 
-        const { data: eventsData, error: eventsError } = await supabase
-            .from("events")
-            .insert(eventRows)
-            .select("id");
+            log(`events INSERT 送信データ (${eventRows.length}件):`);
+            eventRows.forEach((row, i) => log(`  row[${i}]:`, JSON.stringify(row)));
 
-        if (eventsError) {
-            err("❌ events テーブル INSERT 失敗:");
-            dumpError("eventsError", eventsError);
-            err("失敗時の eventRows:", JSON.stringify(eventRows, null, 2));
+            const { data: eventsData, error: eventsError } = await supabase
+                .from("events")
+                .insert(eventRows)
+                .select("id");
 
-            // ロールバック: prints レコードを削除
-            log("ロールバック開始 — prints id:", print.id, "を削除します");
-            const { error: rollbackError } = await supabase.from("prints").delete().eq("id", print.id);
-            if (rollbackError) {
-                err("⚠️ ロールバック失敗 (prints id", print.id, "が残存):");
-                dumpError("rollbackError", rollbackError);
-            } else {
-                log("ロールバック成功 — prints id:", print.id, "を削除しました");
-            }
+            if (eventsError) {
+                err("❌ events テーブル INSERT 失敗:");
+                dumpError("eventsError", eventsError);
+                err("失敗時の eventRows:", JSON.stringify(eventRows, null, 2));
 
-            if (isRlsError(eventsError)) {
+                // ロールバック: prints レコードを削除
+                log("ロールバック開始 — prints id:", print.id, "を削除します");
+                const { error: rollbackError } = await supabase.from("prints").delete().eq("id", print.id);
+                if (rollbackError) {
+                    err("⚠️ ロールバック失敗 (prints id", print.id, "が残存):");
+                    dumpError("rollbackError", rollbackError);
+                } else {
+                    log("ロールバック成功 — prints id:", print.id, "を削除しました");
+                }
+
+                if (isRlsError(eventsError)) {
+                    return NextResponse.json(
+                        {
+                            error: "RLS ポリシーにより events テーブルへの書き込みが拒否されました。Supabase の INSERT ポリシーを確認してください。",
+                            code: "RLS_ERROR",
+                        },
+                        { status: 403 }
+                    );
+                }
                 return NextResponse.json(
                     {
-                        error: "RLS ポリシーにより events テーブルへの書き込みが拒否されました。Supabase の INSERT ポリシーを確認してください。",
-                        code: "RLS_ERROR",
+                        error: "events テーブルへの保存に失敗しました",
+                        code: "DB_ERROR",
+                        detail: eventsError.message,
                     },
-                    { status: 403 }
+                    { status: 500 }
                 );
             }
-            return NextResponse.json(
-                {
-                    error: "events テーブルへの保存に失敗しました",
-                    code: "DB_ERROR",
-                    detail: eventsError.message,
-                },
-                { status: 500 }
-            );
+
+            savedEventCount = eventsData?.length ?? eventRows.length;
+            log(`✅ events INSERT 成功 (${savedEventCount}件)`);
+        } else {
+            log("events 0件 — events テーブルへの INSERT をスキップ（画像のみ保存）");
         }
 
-        log(`✅ events INSERT 成功 (${eventsData?.length ?? eventRows.length}件)`);
         log(`===== POST 完了 reqId=${reqId} =====`);
 
         return NextResponse.json({
             success: true,
             printId: print.id,
-            eventCount: eventsData?.length ?? eventRows.length,
+            eventCount: savedEventCount,
             imageUrl,
         });
     } catch (error: unknown) {

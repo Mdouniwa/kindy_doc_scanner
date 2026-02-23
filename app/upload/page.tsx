@@ -19,6 +19,7 @@ export default function UploadPage() {
     const [loading, setLoading] = useState(false);
     const [loadingStep, setLoadingStep] = useState("");
     const [results, setResults] = useState<EventItem[]>([]);
+    const [noEventsFound, setNoEventsFound] = useState(false);
     const [error, setError] = useState<string>("");
     const [saved, setSaved] = useState(false);
     const [saveError, setSaveError] = useState<{ code: string; message: string } | null>(null);
@@ -28,6 +29,7 @@ export default function UploadPage() {
         const selected = e.target.files?.[0] ?? null;
         setFile(selected);
         setResults([]);
+        setNoEventsFound(false);
         setError("");
         setSaved(false);
         setSaveError(null);
@@ -46,6 +48,7 @@ export default function UploadPage() {
         setLoading(true);
         setError("");
         setResults([]);
+        setNoEventsFound(false);
         setSaved(false);
         setSaveError(null);
         setCompressResult(null);
@@ -64,46 +67,64 @@ export default function UploadPage() {
                 );
             }
 
-            // ── Step 2: OCR ───────────────────────────────────────────────────
+            // ── Step 2: OCR（失敗してもフォールバックで続行）─────────────────
             setLoadingStep("📖 プリントを読み取り中...");
-            const formData = new FormData();
-            formData.append("file", compressed.file);
-            const ocrRes = await fetch("/api/ocr", { method: "POST", body: formData });
-            if (!ocrRes.ok) {
-                const ocrErr = await ocrRes.json().catch(() => ({}));
-                throw new Error(ocrErr.error ?? "OCR処理に失敗しました");
-            }
-            const ocrData = await ocrRes.json();
-
-            const events: Array<{ title: string; date: string; time: string; needsReminder: boolean }> =
-                ocrData.events ?? [];
-
-            if (events.length === 0) {
-                throw new Error("行事情報を抽出できませんでした");
+            let rawEvents: Array<{ title: string; date: string; time: string; needsReminder: boolean }> = [];
+            try {
+                const ocrForm = new FormData();
+                ocrForm.append("file", compressed.file);
+                const ocrRes = await fetch("/api/ocr", { method: "POST", body: ocrForm });
+                if (ocrRes.ok) {
+                    const ocrData = await ocrRes.json();
+                    rawEvents = ocrData.events ?? [];
+                }
+            } catch {
+                // ネットワークエラー等 — フォールバックへ
             }
 
-            // ── Step 3: Perplexity アドバイスを各行事に対して並列取得 ─────────
-            setLoadingStep(`🔍 ${events.length}件の行事のアドバイスを取得中...`);
-            const enrichedEvents: EventItem[] = await Promise.all(
-                events.map(async (ev) => {
-                    try {
-                        const perplexityRes = await fetch("/api/perplexity", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ title: ev.title }),
-                        });
-                        if (!perplexityRes.ok) return { ...ev, advice: "" };
-                        const adviceData = await perplexityRes.json();
-                        return { ...ev, advice: adviceData.advice ?? "" };
-                    } catch {
-                        return { ...ev, advice: "" };
-                    }
-                })
-            );
+            // OCR で行事が取得できなかった場合はフォールバックイベントを設定
+            let enrichedEvents: EventItem[];
+            let usedFallback = false;
 
-            setResults(enrichedEvents);
+            if (rawEvents.length === 0) {
+                usedFallback = true;
+                const scanDate = new Date().toLocaleDateString("ja-JP", {
+                    year: "numeric", month: "long", day: "numeric",
+                });
+                const fallback: EventItem = {
+                    title: `未分類の書類（${scanDate}スキャン）`,
+                    date: "日付不明",
+                    time: "",
+                    needsReminder: false,
+                    advice: "",
+                };
+                enrichedEvents = [fallback];
+            } else {
+                // ── Step 3: Perplexity アドバイスを各行事に対して並列取得 ─────
+                setLoadingStep(`🔍 ${rawEvents.length}件の行事のアドバイスを取得中...`);
+                enrichedEvents = await Promise.all(
+                    rawEvents.map(async (ev) => {
+                        try {
+                            const perplexityRes = await fetch("/api/perplexity", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ title: ev.title }),
+                            });
+                            if (!perplexityRes.ok) return { ...ev, advice: "" };
+                            const adviceData = await perplexityRes.json();
+                            return { ...ev, advice: adviceData.advice ?? "" };
+                        } catch {
+                            return { ...ev, advice: "" };
+                        }
+                    })
+                );
+            }
 
-            // ── Step 4: Supabase に自動保存 ───────────────────────────────────
+            // フォールバック時は results を空に保ち、専用UIで案内する
+            setNoEventsFound(usedFallback);
+            if (!usedFallback) setResults(enrichedEvents);
+
+            // ── Step 4: Supabase に自動保存（フォールバック含む）────────────
             setLoadingStep("💾 データを保存中...");
             try {
                 const saveFormData = new FormData();
@@ -239,9 +260,43 @@ export default function UploadPage() {
                     )}
                     {compressResult.wasResized && (
                         <span className="bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full">
-                            長辺1200pxにリサイズ済み
+                            長辺2000pxにリサイズ済み
                         </span>
                     )}
+                </div>
+            )}
+
+            {/* OCR で行事情報が見つからなかった場合（画像のみ保存） */}
+            {noEventsFound && !loading && (
+                <div className="w-full max-w-lg mt-6">
+                    <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-indigo-100 overflow-hidden">
+                        <div className="p-5">
+                            <div className="flex items-start gap-4">
+                                <span className="text-3xl flex-shrink-0">📷</span>
+                                <div>
+                                    <h3 className="font-bold text-gray-800 text-lg">画像を保存しました</h3>
+                                    <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                                        詳細情報は見つかりませんでしたが、画像は履歴に保存されました。<br />
+                                        手書きや低解像度の場合は、より明るい場所で再撮影してみてください。
+                                    </p>
+                                </div>
+                            </div>
+                            {saved && (
+                                <div className="mt-4 flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-4 py-2.5">
+                                    <span>✅</span>
+                                    <span>履歴に保存されました</span>
+                                    <Link href="/history" className="ml-auto text-green-600 underline underline-offset-2 hover:text-green-800 text-xs">
+                                        履歴を見る →
+                                    </Link>
+                                </div>
+                            )}
+                            {saveError && (
+                                <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-sm text-yellow-700">
+                                    ⚠️ {saveError.message}
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
 
