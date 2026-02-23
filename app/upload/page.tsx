@@ -3,6 +3,7 @@ import React, { useState, ChangeEvent, FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import ResultCard from "../../components/ResultCard";
+import { compressAndConvertImage, MAX_UPLOAD_BYTES, type CompressResult } from "../../lib/imageUtils";
 
 interface EventItem {
     title: string;
@@ -21,6 +22,7 @@ export default function UploadPage() {
     const [error, setError] = useState<string>("");
     const [saved, setSaved] = useState(false);
     const [saveError, setSaveError] = useState<{ code: string; message: string } | null>(null);
+    const [compressResult, setCompressResult] = useState<CompressResult | null>(null);
 
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         const selected = e.target.files?.[0] ?? null;
@@ -29,6 +31,7 @@ export default function UploadPage() {
         setError("");
         setSaved(false);
         setSaveError(null);
+        setCompressResult(null);
         if (selected) {
             const url = URL.createObjectURL(selected);
             setPreviewUrl(url);
@@ -45,14 +48,31 @@ export default function UploadPage() {
         setResults([]);
         setSaved(false);
         setSaveError(null);
+        setCompressResult(null);
 
         try {
-            // Step 1: OCR
+            // ── Step 1: 画像を圧縮・変換 ──────────────────────────────────────
+            setLoadingStep("📷 画像を最適化中...");
+            const compressed = await compressAndConvertImage(file);
+            setCompressResult(compressed);
+
+            // アップロードサイズ上限チェック
+            if (compressed.file.size > MAX_UPLOAD_BYTES) {
+                throw new Error(
+                    `圧縮後もファイルサイズが ${compressed.compressedSizeMB.toFixed(1)}MB あります。` +
+                    `より小さい画像を使用してください（上限 ${(MAX_UPLOAD_BYTES / 1024 / 1024).toFixed(1)}MB）。`
+                );
+            }
+
+            // ── Step 2: OCR ───────────────────────────────────────────────────
             setLoadingStep("📖 プリントを読み取り中...");
             const formData = new FormData();
-            formData.append("file", file);
+            formData.append("file", compressed.file);
             const ocrRes = await fetch("/api/ocr", { method: "POST", body: formData });
-            if (!ocrRes.ok) throw new Error("OCR処理に失敗しました");
+            if (!ocrRes.ok) {
+                const ocrErr = await ocrRes.json().catch(() => ({}));
+                throw new Error(ocrErr.error ?? "OCR処理に失敗しました");
+            }
             const ocrData = await ocrRes.json();
 
             const events: Array<{ title: string; date: string; time: string; needsReminder: boolean }> =
@@ -62,7 +82,7 @@ export default function UploadPage() {
                 throw new Error("行事情報を抽出できませんでした");
             }
 
-            // Step 2: Perplexity アドバイスを各行事に対して並列取得
+            // ── Step 3: Perplexity アドバイスを各行事に対して並列取得 ─────────
             setLoadingStep(`🔍 ${events.length}件の行事のアドバイスを取得中...`);
             const enrichedEvents: EventItem[] = await Promise.all(
                 events.map(async (ev) => {
@@ -83,11 +103,11 @@ export default function UploadPage() {
 
             setResults(enrichedEvents);
 
-            // Step 3: Supabase に自動保存
+            // ── Step 4: Supabase に自動保存 ───────────────────────────────────
             setLoadingStep("💾 データを保存中...");
             try {
                 const saveFormData = new FormData();
-                saveFormData.append("file", file);
+                saveFormData.append("file", compressed.file);
                 saveFormData.append("events", JSON.stringify(enrichedEvents));
                 const saveRes = await fetch("/api/save", { method: "POST", body: saveFormData });
                 if (saveRes.ok) {
@@ -131,23 +151,43 @@ export default function UploadPage() {
                 onSubmit={handleSubmit}
                 className="w-full max-w-lg bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-indigo-100"
             >
-                <label className="block text-sm font-semibold text-gray-600 mb-2" htmlFor="fileInput">
-                    プリント画像を選択（jpg / png / pdf）
+                <label className="block text-sm font-semibold text-gray-600 mb-1" htmlFor="fileInput">
+                    プリント画像を選択
                 </label>
+                <p className="text-xs text-gray-400 mb-3">
+                    JPG / PNG / HEIC（iPhone撮影） / PDF に対応。送信前に自動で圧縮されます。
+                </p>
                 <input
                     id="fileInput"
                     type="file"
-                    accept=".jpg,.jpeg,.png,.pdf"
+                    accept=".jpg,.jpeg,.png,.heic,.heif,.pdf,image/*"
                     onChange={handleFileChange}
                     className="block w-full text-sm text-gray-500
-            file:mr-4 file:py-2 file:px-5 file:rounded-full file:border-0
-            file:text-sm file:font-semibold file:bg-indigo-600 file:text-white
-            hover:file:bg-indigo-700 transition mb-4 cursor-pointer"
+                        file:mr-4 file:py-2 file:px-5 file:rounded-full file:border-0
+                        file:text-sm file:font-semibold file:bg-indigo-600 file:text-white
+                        hover:file:bg-indigo-700 transition mb-4 cursor-pointer"
                 />
+
+                {/* 選択ファイルのサイズ情報 */}
+                {file && !loading && (
+                    <div className="mb-3 flex items-center gap-2 text-xs text-gray-400">
+                        <span>📎 {file.name}</span>
+                        <span className="bg-gray-100 px-2 py-0.5 rounded-full">
+                            {(file.size / 1024 / 1024).toFixed(1)} MB
+                        </span>
+                        {(file.name.toLowerCase().endsWith(".heic") || file.name.toLowerCase().endsWith(".heif")) && (
+                            <span className="bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full font-semibold">
+                                HEIC → JPEGに自動変換
+                            </span>
+                        )}
+                    </div>
+                )}
 
                 {previewUrl && (
                     <div className="mb-4 rounded-xl overflow-hidden border border-indigo-100 shadow-sm">
-                        {file?.type.startsWith("image/") ? (
+                        {file?.type.startsWith("image/") ||
+                        file?.name.toLowerCase().endsWith(".heic") ||
+                        file?.name.toLowerCase().endsWith(".heif") ? (
                             <Image
                                 src={previewUrl}
                                 alt="プレビュー"
@@ -167,18 +207,40 @@ export default function UploadPage() {
                     type="submit"
                     disabled={loading || !file}
                     className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold shadow
-            hover:from-indigo-700 hover:to-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        hover:from-indigo-700 hover:to-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {loading ? loadingStep : "✨ 送信してデータ抽出"}
                 </button>
 
                 {error && (
-                    <p className="mt-3 text-sm text-red-500 text-center">{error}</p>
+                    <p className="mt-3 text-sm text-red-500 text-center whitespace-pre-line">{error}</p>
                 )}
             </form>
 
+            {/* 圧縮結果バッジ */}
+            {compressResult && !loading && (
+                <div className="mt-4 w-full max-w-lg flex flex-wrap items-center gap-2 px-4 py-2.5 bg-sky-50 border border-sky-200 rounded-xl text-xs text-sky-700">
+                    <span className="font-semibold">📦 画像最適化</span>
+                    <span className="bg-sky-100 px-2 py-0.5 rounded-full">
+                        {compressResult.originalSizeMB.toFixed(1)}MB
+                        {" → "}
+                        <span className="font-bold text-sky-800">{compressResult.compressedSizeMB.toFixed(1)}MB</span>
+                    </span>
+                    {compressResult.wasConverted && (
+                        <span className="bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full font-semibold">
+                            HEIC→JPEG変換済み
+                        </span>
+                    )}
+                    {compressResult.wasResized && (
+                        <span className="bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full">
+                            長辺1200pxにリサイズ済み
+                        </span>
+                    )}
+                </div>
+            )}
+
             {results.length > 0 && (
-                <div className="w-full max-w-lg mt-8">
+                <div className="w-full max-w-lg mt-6">
                     {/* 保存ステータス */}
                     {saved && (
                         <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm font-medium">
