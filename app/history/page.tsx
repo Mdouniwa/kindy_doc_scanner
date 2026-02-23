@@ -54,28 +54,28 @@ function ConfirmDialog({
 
     return (
         <div
-            className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+            className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
             onClick={onCancel}
         >
             <div
-                className="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden"
+                className="w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="p-5">
+                <div className="px-6 pt-6 pb-4">
                     <h3 className="font-bold text-gray-900 text-lg">{title}</h3>
                     <p className="mt-2 text-sm text-gray-500 leading-relaxed">{message}</p>
                 </div>
                 <div className="flex border-t border-gray-100">
                     <button
                         onClick={onCancel}
-                        className="flex-1 py-3.5 text-sm font-semibold text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition"
+                        className="flex-1 py-4 text-sm font-semibold text-gray-500 hover:bg-gray-50 active:bg-gray-100 transition"
                     >
                         キャンセル
                     </button>
                     <div className="w-px bg-gray-100" />
                     <button
                         onClick={onConfirm}
-                        className="flex-1 py-3.5 text-sm font-semibold text-red-600 hover:bg-red-50 active:bg-red-100 transition"
+                        className="flex-1 py-4 text-sm font-bold text-rose-600 hover:bg-rose-50 active:bg-rose-100 transition"
                     >
                         {confirmLabel}
                     </button>
@@ -87,12 +87,7 @@ function ConfirmDialog({
 
 // ─── 画像拡大モーダル ─────────────────────────────────────────────────────────
 
-interface ImageModalProps {
-    url: string;
-    onClose: () => void;
-}
-
-function ImageModal({ url, onClose }: ImageModalProps) {
+function ImageModal({ url, onClose }: { url: string; onClose: () => void }) {
     const [zoomed, setZoomed] = useState(false);
 
     useEffect(() => {
@@ -109,12 +104,12 @@ function ImageModal({ url, onClose }: ImageModalProps) {
     return (
         <div className="fixed inset-0 z-50 bg-black flex flex-col select-none">
             <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-black/80 backdrop-blur-sm">
-                <p className="text-white/50 text-xs leading-snug">
+                <p className="text-white/50 text-xs">
                     {zoomed ? "スクロールして確認 / タップで縮小" : "タップで拡大 / ピンチでズーム"}
                 </p>
                 <button
                     onClick={onClose}
-                    className="ml-4 flex-shrink-0 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 active:bg-white/40 transition flex items-center justify-center text-white text-base font-bold"
+                    className="ml-4 flex-shrink-0 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 active:bg-white/40 transition flex items-center justify-center text-white font-bold"
                     aria-label="閉じる"
                 >
                     ✕
@@ -158,7 +153,6 @@ export default function HistoryPage() {
     const [deleteError, setDeleteError] = useState("");
     const [modalUrl, setModalUrl] = useState<string | null>(null);
 
-    // 選択・削除ステート
     const [selectMode, setSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [deleting, setDeleting] = useState(false);
@@ -167,7 +161,7 @@ export default function HistoryPage() {
     const openModal = useCallback((url: string) => setModalUrl(url), []);
     const closeModal = useCallback(() => setModalUrl(null), []);
 
-    // ── データ取得 ──────────────────────────────────────────────────────────────
+    // ── データ取得 ────────────────────────────────────────────────────────────
     const fetchPrints = useCallback(async () => {
         setFetchError("");
         const supabase = createBrowserClient();
@@ -188,7 +182,7 @@ export default function HistoryPage() {
 
     useEffect(() => { fetchPrints(); }, [fetchPrints]);
 
-    // ── 選択操作 ────────────────────────────────────────────────────────────────
+    // ── 選択操作 ──────────────────────────────────────────────────────────────
     const toggleSelect = useCallback((id: string) => {
         setSelectedIds((prev) => {
             const next = new Set(prev);
@@ -207,19 +201,15 @@ export default function HistoryPage() {
         setSelectedIds(new Set());
     }, []);
 
-    const selectAll = useCallback(() => {
-        setSelectedIds(new Set(prints.map((p) => p.id)));
-    }, [prints]);
-
+    const selectAll = useCallback(() => setSelectedIds(new Set(prints.map((p) => p.id))), [prints]);
     const deselectAll = useCallback(() => setSelectedIds(new Set()), []);
 
-    // ── 削除実行（楽観的更新） ───────────────────────────────────────────────────
+    // ── 削除実行（楽観的更新） ─────────────────────────────────────────────────
     const executeDeletion = useCallback(async (idsToDelete: string[]) => {
         setConfirmState(null);
         setDeleting(true);
         setDeleteError("");
 
-        // 楽観的更新：即座に UI から消す
         setPrints((prev) => prev.filter((p) => !idsToDelete.includes(p.id)));
         setSelectedIds(new Set());
         setSelectMode(false);
@@ -235,26 +225,23 @@ export default function HistoryPage() {
                 throw new Error(body.error ?? "削除に失敗しました");
             }
         } catch (e) {
-            const msg = e instanceof Error ? e.message : "削除に失敗しました";
-            setDeleteError(msg);
-            // 楽観的更新を元に戻すため再取得
+            setDeleteError(e instanceof Error ? e.message : "削除に失敗しました");
             await fetchPrints();
         } finally {
             setDeleting(false);
         }
     }, [fetchPrints]);
 
-    // ── 確認ダイアログを経由する削除ヘルパー ────────────────────────────────────
     const askDelete = useCallback((ids: string[]) => {
         const count = ids.length;
         const isAll = count === prints.length && prints.length > 0;
         setConfirmState({
-            title: isAll ? "すべて削除" : count === 1 ? "プリントを削除" : `${count}件を削除`,
+            title: isAll ? "すべての履歴を削除" : count === 1 ? "この履歴を削除" : `${count}件を削除`,
             message: isAll
-                ? `すべての履歴（${count}件）を削除しますか？この操作は取り消せません。`
+                ? `すべての履歴（${count}件）を削除しますか？\nVercel Blob の画像も一緒に削除されます。この操作は取り消せません。`
                 : count === 1
-                ? "このプリントを削除しますか？この操作は取り消せません。"
-                : `選択した ${count} 件のプリントを削除しますか？この操作は取り消せません。`,
+                ? "この履歴を削除しますか？この操作は取り消せません。"
+                : `選択した ${count} 件を削除しますか？この操作は取り消せません。`,
             confirmLabel: "削除する",
             onConfirm: () => executeDeletion(ids),
         });
@@ -268,314 +255,341 @@ export default function HistoryPage() {
 
     return (
         <>
-            {/* 確認ダイアログ */}
-            {confirmState && (
-                <ConfirmDialog {...confirmState} onCancel={() => setConfirmState(null)} />
-            )}
-
-            {/* 画像拡大モーダル */}
+            {confirmState && <ConfirmDialog {...confirmState} onCancel={() => setConfirmState(null)} />}
             {modalUrl && <ImageModal url={modalUrl} onClose={closeModal} />}
 
-            <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 flex flex-col items-center py-10 px-4">
+            {/* 選択モード時の薄いオーバーレイ（背景が変わったことを示す） */}
+            {selectMode && (
+                <div className="fixed inset-0 bg-black/5 pointer-events-none z-[5]" />
+            )}
 
-                {/* ─── ヘッダー ─── */}
-                <header className="mb-6 w-full max-w-2xl">
+            <div className={`min-h-screen transition-colors duration-300 ${selectMode ? "bg-gray-100" : "bg-gradient-to-b from-orange-50 to-white"}`}>
+
+                {/* ─── スティッキーヘッダー ─── */}
+                <header className={`sticky top-0 z-10 border-b px-4 h-14 flex items-center transition-colors duration-300 ${
+                    selectMode
+                        ? "bg-gray-900/90 backdrop-blur-md border-gray-800"
+                        : "bg-white/90 backdrop-blur-md border-gray-100"
+                }`}>
                     {selectMode ? (
-                        /* 選択モード ヘッダー */
+                        /* 選択モードヘッダー（暗い背景で切り替わったことを明示） */
                         <>
-                            <div className="flex items-center justify-between">
-                                <button
-                                    onClick={exitSelectMode}
-                                    className="px-3 py-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition"
-                                >
-                                    キャンセル
-                                </button>
-                                <span className="text-sm font-semibold text-gray-700">
-                                    {selectedIds.size > 0 ? `${selectedIds.size}件を選択中` : "選択してください"}
-                                </span>
-                                <button
-                                    onClick={handleDeleteSelected}
-                                    disabled={selectedIds.size === 0 || deleting}
-                                    className="px-3 py-2 text-sm font-semibold text-red-600 hover:text-red-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                                >
-                                    削除
-                                </button>
-                            </div>
-                            {/* 全選択・全削除サブバー */}
-                            <div className="mt-2 flex items-center gap-3 px-1">
-                                <button
-                                    onClick={allSelected ? deselectAll : selectAll}
-                                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition"
-                                >
-                                    {allSelected ? "全て解除" : "全て選択"}
-                                </button>
-                                <span className="text-gray-300 text-xs">|</span>
-                                <button
-                                    onClick={handleDeleteAll}
-                                    disabled={deleting}
-                                    className="text-xs font-semibold text-red-500 hover:text-red-700 disabled:opacity-40 transition"
-                                >
-                                    全て削除
-                                </button>
-                            </div>
+                            <button
+                                onClick={exitSelectMode}
+                                className="text-sm font-semibold text-gray-300 hover:text-white transition mr-auto"
+                            >
+                                キャンセル
+                            </button>
+                            <span className="text-sm font-bold text-white absolute left-1/2 -translate-x-1/2">
+                                {selectedIds.size > 0 ? `${selectedIds.size}件選択中` : "選択してください"}
+                            </span>
+                            <button
+                                onClick={allSelected ? deselectAll : selectAll}
+                                className="text-sm font-semibold text-orange-300 hover:text-orange-200 transition ml-auto"
+                            >
+                                {allSelected ? "全解除" : "全選択"}
+                            </button>
                         </>
                     ) : (
-                        /* 通常モード ヘッダー */
+                        /* 通常ヘッダー */
                         <>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h1 className="text-3xl font-extrabold text-indigo-700 drop-shadow">📚 スキャン履歴</h1>
-                                    <p className="mt-1 text-gray-500 text-sm">保存済みのプリント一覧です</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    {prints.length > 0 && (
+                            <Link
+                                href="/"
+                                className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition text-gray-600 mr-1"
+                            >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </Link>
+                            <h1 className="font-bold text-gray-900 text-base">スキャン履歴</h1>
+                            <div className="flex items-center gap-1 ml-auto">
+                                {prints.length > 0 && (
+                                    <>
+                                        <button
+                                            onClick={handleDeleteAll}
+                                            disabled={deleting}
+                                            className="h-9 px-3 text-xs font-semibold text-rose-500 hover:bg-rose-50 rounded-xl transition disabled:opacity-40"
+                                        >
+                                            全削除
+                                        </button>
                                         <button
                                             onClick={enterSelectMode}
-                                            className="px-3 py-2 text-sm font-semibold text-gray-600 bg-white/70 border border-gray-200 rounded-xl hover:bg-white shadow-sm transition"
+                                            className="h-9 px-3 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition"
                                         >
                                             選択
                                         </button>
-                                    )}
-                                    <Link
-                                        href="/upload"
-                                        className="flex items-center gap-1 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold shadow hover:bg-indigo-700 transition"
-                                    >
-                                        ＋ 新規
-                                    </Link>
-                                </div>
+                                    </>
+                                )}
                             </div>
-                            {/* 全削除ボタン（通常モード） */}
-                            {prints.length > 0 && (
-                                <div className="mt-3 flex justify-end">
-                                    <button
-                                        onClick={handleDeleteAll}
-                                        disabled={deleting}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-500 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 disabled:opacity-40 transition"
-                                    >
-                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                        全て削除
-                                    </button>
-                                </div>
-                            )}
                         </>
                     )}
                 </header>
 
-                {/* 削除エラー */}
-                {deleteError && (
-                    <div className="mb-4 w-full max-w-2xl bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm flex items-start gap-2">
-                        <span className="flex-shrink-0">⚠️</span>
-                        <span>{deleteError}</span>
-                    </div>
-                )}
+                {/* ─── コンテンツ ─── */}
+                <div className={`max-w-2xl mx-auto px-4 pt-6 ${selectMode ? "pb-48" : "pb-28"}`}>
 
-                {/* 削除中オーバーレイ */}
-                {deleting && (
-                    <div className="mb-4 w-full max-w-2xl bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-2.5 text-indigo-600 text-sm flex items-center gap-2">
-                        <svg className="animate-spin h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                        </svg>
-                        削除中...
-                    </div>
-                )}
+                    {/* 削除エラー */}
+                    {deleteError && (
+                        <div className="mb-4 bg-rose-50 border border-rose-200 rounded-2xl px-4 py-3 text-rose-600 text-sm flex items-start gap-2">
+                            <span>⚠️</span>
+                            <span>{deleteError}</span>
+                        </div>
+                    )}
 
-                {/* ローディング */}
-                {loading && (
-                    <div className="flex flex-col items-center gap-3 mt-16 text-indigo-400">
-                        <svg className="animate-spin h-8 w-8" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                        </svg>
-                        <p className="text-sm">読み込み中...</p>
-                    </div>
-                )}
+                    {/* 削除中インジケータ */}
+                    {deleting && (
+                        <div className="mb-4 bg-orange-50 border border-orange-200 rounded-2xl px-4 py-2.5 text-orange-600 text-sm flex items-center gap-2">
+                            <svg className="animate-spin h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                            </svg>
+                            削除中...
+                        </div>
+                    )}
 
-                {/* フェッチエラー */}
-                {fetchError && (
-                    <div className="mt-8 w-full max-w-2xl bg-red-50 border border-red-200 rounded-2xl p-5 text-red-600 text-sm">
-                        {fetchError}
-                    </div>
-                )}
+                    {/* ローディング */}
+                    {loading && (
+                        <div className="flex flex-col items-center gap-3 mt-20 text-orange-300">
+                            <svg className="animate-spin h-9 w-9" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                            </svg>
+                            <p className="text-sm text-gray-400">読み込み中...</p>
+                        </div>
+                    )}
 
-                {/* 空状態 */}
-                {!loading && !fetchError && prints.length === 0 && (
-                    <div className="mt-16 flex flex-col items-center gap-4 text-gray-400">
-                        <span className="text-5xl">📭</span>
-                        <p className="text-lg font-semibold">履歴がまだありません</p>
-                        <p className="text-sm">プリントをアップロードすると自動的に保存されます</p>
-                        <Link
-                            href="/upload"
-                            className="mt-4 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold shadow hover:bg-indigo-700 transition"
-                        >
-                            ✨ プリントをスキャンする
-                        </Link>
-                    </div>
-                )}
+                    {/* フェッチエラー */}
+                    {fetchError && (
+                        <div className="mt-8 bg-rose-50 border border-rose-200 rounded-2xl p-5 text-rose-600 text-sm">
+                            {fetchError}
+                        </div>
+                    )}
 
-                {/* プリントカード一覧 */}
-                <div className="w-full max-w-2xl space-y-4">
-                    {prints.map((print) => {
-                        const isSelected = selectedIds.has(print.id);
-                        return (
-                            <div
-                                key={print.id}
-                                className={`flex items-stretch gap-3 transition-all duration-150 ${selectMode ? "cursor-pointer" : ""}`}
-                                onClick={selectMode ? () => toggleSelect(print.id) : undefined}
+                    {/* 空状態 */}
+                    {!loading && !fetchError && prints.length === 0 && (
+                        <div className="mt-20 flex flex-col items-center gap-4 text-center">
+                            <div className="w-20 h-20 bg-orange-100 rounded-3xl flex items-center justify-center">
+                                <span className="text-4xl">📭</span>
+                            </div>
+                            <div>
+                                <p className="text-lg font-bold text-gray-800">履歴がまだありません</p>
+                                <p className="text-sm text-gray-500 mt-1">プリントをアップロードすると自動的に保存されます</p>
+                            </div>
+                            <Link
+                                href="/upload"
+                                className="mt-2 flex items-center gap-2 h-12 px-6 rounded-2xl bg-orange-500 text-white font-bold text-sm shadow-lg shadow-orange-200 hover:bg-orange-600 transition"
                             >
-                                {/* チェックボックス列（選択モード時のみ） */}
-                                {selectMode && (
-                                    <div
-                                        className="flex items-center pl-1 flex-shrink-0"
-                                        onClick={(e) => { e.stopPropagation(); toggleSelect(print.id); }}
-                                    >
-                                        <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-150 ${
-                                            isSelected
-                                                ? "bg-indigo-600 border-indigo-600 text-white"
-                                                : "border-gray-300 bg-white"
-                                        }`}>
-                                            {isSelected && (
-                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                </svg>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
+                                <span>📷</span>
+                                プリントをスキャン
+                            </Link>
+                        </div>
+                    )}
 
-                                {/* カード本体 */}
-                                <div className={`flex-1 bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border overflow-hidden transition-all duration-150 ${
-                                    isSelected && selectMode
-                                        ? "border-indigo-400 ring-2 ring-indigo-300/60"
-                                        : "border-indigo-100"
-                                }`}>
-                                    {/* 画像エリア */}
-                                    {print.image_url ? (
-                                        selectMode ? (
-                                            /* 選択モード：画像はモーダルを開かない */
-                                            <div className="relative w-full overflow-hidden bg-gray-50">
-                                                <Image
-                                                    src={print.image_url}
-                                                    alt="プリント画像"
-                                                    width={800}
-                                                    height={600}
-                                                    quality={90}
-                                                    className="w-full h-auto object-contain"
-                                                    style={{ display: "block" }}
-                                                />
-                                            </div>
-                                        ) : (
-                                            /* 通常モード：タップでモーダル表示 */
-                                            <button
-                                                type="button"
-                                                onClick={() => openModal(print.image_url)}
-                                                className="relative w-full block overflow-hidden bg-gray-50 active:brightness-95 transition"
-                                                aria-label="画像を拡大表示"
-                                            >
-                                                <Image
-                                                    src={print.image_url}
-                                                    alt="プリント画像"
-                                                    width={800}
-                                                    height={600}
-                                                    quality={90}
-                                                    className="w-full h-auto object-contain"
-                                                    style={{ display: "block" }}
-                                                />
-                                                <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/50 backdrop-blur-sm text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow">
-                                                    <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                    {/* プリントカード一覧 */}
+                    <div className="space-y-4">
+                        {prints.map((print) => {
+                            const isSelected = selectedIds.has(print.id);
+                            return (
+                                <div
+                                    key={print.id}
+                                    className={`flex items-stretch gap-3 transition-all duration-150 ${selectMode ? "cursor-pointer" : ""}`}
+                                    onClick={selectMode ? () => toggleSelect(print.id) : undefined}
+                                >
+                                    {/* チェックボックス */}
+                                    {selectMode && (
+                                        <div
+                                            className="flex items-center pl-1 flex-shrink-0"
+                                            onClick={(e) => { e.stopPropagation(); toggleSelect(print.id); }}
+                                        >
+                                            <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
+                                                isSelected
+                                                    ? "bg-orange-500 border-orange-500 text-white"
+                                                    : "border-gray-400 bg-white/80"
+                                            }`}>
+                                                {isSelected && (
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                                     </svg>
-                                                    タップで拡大
-                                                </div>
-                                            </button>
-                                        )
-                                    ) : (
-                                        <div className="w-full h-24 bg-indigo-50 flex items-center justify-center text-gray-400 text-sm gap-2">
-                                            <span className="text-2xl">📄</span>
-                                            <span>画像なし</span>
+                                                )}
+                                            </div>
                                         </div>
                                     )}
 
-                                    {/* メタ情報バー */}
-                                    <div
-                                        className="flex items-center justify-between px-4 py-3 border-b border-indigo-50"
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        <p className="text-xs text-gray-400">{formatDate(print.created_at)}</p>
-                                        <div className="flex items-center gap-2">
-                                            <span className="bg-indigo-100 text-indigo-600 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                                                {print.events?.length ?? 0}件の行事
-                                            </span>
-                                            {/* 個別削除ボタン（通常モードのみ） */}
-                                            {!selectMode && (
+                                    {/* カード本体 */}
+                                    <div className={`flex-1 bg-white rounded-2xl shadow-sm border overflow-hidden transition-all duration-150 ${
+                                        isSelected && selectMode
+                                            ? "border-orange-400 ring-2 ring-orange-300/50"
+                                            : "border-gray-100"
+                                    }`}>
+                                        {/* 画像エリア */}
+                                        {print.image_url ? (
+                                            selectMode ? (
+                                                <div className="relative w-full overflow-hidden bg-gray-50">
+                                                    <Image
+                                                        src={print.image_url}
+                                                        alt="プリント画像"
+                                                        width={800}
+                                                        height={600}
+                                                        quality={90}
+                                                        className="w-full h-auto object-contain"
+                                                        style={{ display: "block" }}
+                                                    />
+                                                </div>
+                                            ) : (
                                                 <button
-                                                    onClick={(e) => { e.stopPropagation(); handleDeleteSingle(print.id); }}
-                                                    disabled={deleting}
-                                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition disabled:opacity-40"
-                                                    aria-label="この履歴を削除"
-                                                    title="削除"
+                                                    type="button"
+                                                    onClick={() => openModal(print.image_url)}
+                                                    className="relative w-full block overflow-hidden bg-gray-50 active:brightness-95 transition"
+                                                    aria-label="画像を拡大表示"
                                                 >
-                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
+                                                    <Image
+                                                        src={print.image_url}
+                                                        alt="プリント画像"
+                                                        width={800}
+                                                        height={600}
+                                                        quality={90}
+                                                        className="w-full h-auto object-contain"
+                                                        style={{ display: "block" }}
+                                                    />
+                                                    <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/50 backdrop-blur-sm text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+                                                        <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                                        </svg>
+                                                        タップで拡大
+                                                    </div>
                                                 </button>
-                                            )}
-                                        </div>
-                                    </div>
+                                            )
+                                        ) : (
+                                            <div className="w-full h-20 bg-orange-50 flex items-center justify-center text-gray-400 text-sm gap-2">
+                                                <span className="text-xl">📄</span>
+                                                <span>画像なし</span>
+                                            </div>
+                                        )}
 
-                                    {/* 行事リスト */}
-                                    <div
-                                        className="divide-y divide-indigo-50"
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        {(print.events ?? []).map((ev, idx) => (
-                                            <div key={ev.id} className="p-4">
-                                                <div className="flex items-start gap-3">
-                                                    <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full text-xs font-bold flex items-center justify-center mt-0.5">
-                                                        {idx + 1}
-                                                    </span>
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex flex-wrap items-center gap-2 mb-1">
-                                                            <p className="font-semibold text-gray-800">{ev.title || "不明"}</p>
-                                                            {ev.needs_reminder && (
-                                                                <span className="text-xs bg-pink-100 text-pink-600 font-semibold px-2 py-0.5 rounded-full">
-                                                                    🔔 要通知
-                                                                </span>
+                                        {/* メタバー */}
+                                        <div
+                                            className="flex items-center justify-between px-4 py-2.5 border-b border-gray-50"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <p className="text-xs text-gray-400">{formatDate(print.created_at)}</p>
+                                            <div className="flex items-center gap-2">
+                                                <span className="bg-orange-100 text-orange-600 text-xs font-bold px-2.5 py-1 rounded-full">
+                                                    {print.events?.length ?? 0}件の行事
+                                                </span>
+                                                {!selectMode && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleDeleteSingle(print.id); }}
+                                                        disabled={deleting}
+                                                        className="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition disabled:opacity-40"
+                                                        aria-label="削除"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* 行事リスト */}
+                                        <div
+                                            className="divide-y divide-gray-50"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            {(print.events ?? []).map((ev, idx) => (
+                                                <div key={ev.id} className="px-4 py-3.5">
+                                                    <div className="flex items-start gap-3">
+                                                        <span className="flex-shrink-0 w-6 h-6 bg-orange-100 text-orange-600 rounded-full text-xs font-bold flex items-center justify-center mt-0.5">
+                                                            {idx + 1}
+                                                        </span>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                                                                <p className="font-semibold text-gray-900 text-sm leading-tight">{ev.title || "不明"}</p>
+                                                                {ev.needs_reminder && (
+                                                                    <span className="text-xs bg-rose-100 text-rose-600 font-semibold px-2 py-0.5 rounded-full">
+                                                                        🔔 要通知
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                                                                {ev.date && (
+                                                                    <span className="flex items-center gap-1">
+                                                                        <span>📅</span>{ev.date}
+                                                                    </span>
+                                                                )}
+                                                                {ev.time && (
+                                                                    <span className="flex items-center gap-1">
+                                                                        <span>🕐</span>{ev.time}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {ev.advice && (
+                                                                <details className="mt-2">
+                                                                    <summary className="text-xs text-amber-600 font-semibold cursor-pointer hover:text-amber-700">
+                                                                        💡 アドバイスを見る
+                                                                    </summary>
+                                                                    <p className="mt-1.5 text-xs text-gray-600 whitespace-pre-line leading-relaxed bg-amber-50 rounded-xl p-2.5 border border-amber-100">
+                                                                        {ev.advice}
+                                                                    </p>
+                                                                </details>
                                                             )}
                                                         </div>
-                                                        <div className="flex flex-wrap gap-3 text-sm text-gray-500">
-                                                            {ev.date && (
-                                                                <span className="flex items-center gap-1">
-                                                                    <span>📅</span>{ev.date}
-                                                                </span>
-                                                            )}
-                                                            {ev.time && (
-                                                                <span className="flex items-center gap-1">
-                                                                    <span>🕐</span>{ev.time}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        {ev.advice && (
-                                                            <details className="mt-2">
-                                                                <summary className="text-xs text-amber-600 font-semibold cursor-pointer hover:text-amber-700">
-                                                                    💡 アドバイスを見る
-                                                                </summary>
-                                                                <p className="mt-1 text-xs text-gray-600 whitespace-pre-line leading-relaxed bg-amber-50 rounded-lg p-2 border border-amber-100">
-                                                                    {ev.advice}
-                                                                </p>
-                                                            </details>
-                                                        )}
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+
+            {/* ─── FAB：新規スキャン（通常モードのみ） ─── */}
+            {!selectMode && (
+                <Link
+                    href="/upload"
+                    className="fixed bottom-6 right-6 z-20 w-16 h-16 bg-orange-500 rounded-full shadow-xl shadow-orange-300/60 text-2xl flex items-center justify-center text-white hover:bg-orange-600 active:scale-95 transition"
+                    aria-label="新規スキャン"
+                >
+                    📷
+                </Link>
+            )}
+
+            {/* ─── 選択モードのボトムアクションバー（下から出現） ─── */}
+            <div className={`fixed inset-x-0 bottom-0 z-20 transition-transform duration-300 ease-in-out ${
+                selectMode ? "translate-y-0" : "translate-y-full"
+            }`}>
+                <div className="bg-gray-900 border-t border-gray-800 px-4 pt-3 pb-8 shadow-2xl">
+                    <div className="max-w-2xl mx-auto">
+                        {/* 件数・操作テキスト */}
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm text-gray-400">
+                                {selectedIds.size > 0
+                                    ? `${selectedIds.size}件を選択中`
+                                    : "項目を選んでください"}
+                            </span>
+                            <button
+                                onClick={handleDeleteAll}
+                                disabled={deleting}
+                                className="text-xs text-gray-500 hover:text-gray-300 transition disabled:opacity-40"
+                            >
+                                全て削除
+                            </button>
+                        </div>
+
+                        {/* 削除ボタン */}
+                        <button
+                            onClick={handleDeleteSelected}
+                            disabled={selectedIds.size === 0 || deleting}
+                            className="w-full h-14 bg-rose-500 text-white font-bold text-base rounded-2xl shadow-lg shadow-rose-900/50 disabled:opacity-40 disabled:cursor-not-allowed transition hover:bg-rose-600 active:scale-[0.98]"
+                        >
+                            {selectedIds.size > 0
+                                ? `🗑️ ${selectedIds.size}件を削除する`
+                                : "項目を選択してください"}
+                        </button>
+                    </div>
                 </div>
             </div>
         </>
