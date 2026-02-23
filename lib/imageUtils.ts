@@ -6,11 +6,11 @@
  * - アップロードサイズ上限チェック
  */
 
-/** 長辺の最大ピクセル数 */
-const MAX_LONG_SIDE = 1200;
+/** 長辺の最大ピクセル数 — 文字の鮮明さを確保するため高めに設定 */
+const MAX_LONG_SIDE = 2000;
 
-/** JPEG 圧縮品質（0〜1） */
-const JPEG_QUALITY = 0.82;
+/** JPEG 圧縮品質（0〜1）— 高精細スキャン向け */
+const JPEG_QUALITY = 0.85;
 
 /** アップロード上限（バイト）— Vercel Blob / Supabase Storage の安全マージンを考慮 */
 export const MAX_UPLOAD_BYTES = 4.5 * 1024 * 1024; // 4.5 MB
