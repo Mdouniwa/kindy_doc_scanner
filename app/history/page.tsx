@@ -62,17 +62,17 @@ function ConfirmDialog({
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="px-6 pt-6 pb-4">
-                    <h3 className="font-bold text-gray-900 text-lg">{title}</h3>
-                    <p className="mt-2 text-sm text-gray-500 leading-relaxed">{message}</p>
+                    <h3 className="font-bold text-slate-800 text-lg">{title}</h3>
+                    <p className="mt-2 text-sm text-slate-500 leading-relaxed">{message}</p>
                 </div>
-                <div className="flex border-t border-gray-100">
+                <div className="flex border-t border-slate-100">
                     <button
                         onClick={onCancel}
-                        className="flex-1 py-4 text-sm font-semibold text-gray-500 hover:bg-gray-50 active:bg-gray-100 transition"
+                        className="flex-1 py-4 text-sm font-semibold text-slate-500 hover:bg-slate-50 active:bg-slate-100 transition"
                     >
                         キャンセル
                     </button>
-                    <div className="w-px bg-gray-100" />
+                    <div className="w-px bg-slate-100" />
                     <button
                         onClick={onConfirm}
                         className="flex-1 py-4 text-sm font-bold text-rose-600 hover:bg-rose-50 active:bg-rose-100 transition"
@@ -258,25 +258,25 @@ export default function HistoryPage() {
             {confirmState && <ConfirmDialog {...confirmState} onCancel={() => setConfirmState(null)} />}
             {modalUrl && <ImageModal url={modalUrl} onClose={closeModal} />}
 
-            {/* 選択モード時の薄いオーバーレイ（背景が変わったことを示す） */}
+            {/* 選択モード時の薄いオーバーレイ */}
             {selectMode && (
-                <div className="fixed inset-0 bg-black/5 pointer-events-none z-[5]" />
+                <div className="fixed inset-0 bg-slate-900/5 pointer-events-none z-[5]" />
             )}
 
-            <div className={`min-h-screen transition-colors duration-300 ${selectMode ? "bg-gray-100" : "bg-gradient-to-b from-orange-50 to-white"}`}>
+            <div className={`min-h-screen transition-colors duration-300 ${selectMode ? "bg-slate-100" : "bg-gradient-to-b from-emerald-50/40 to-slate-50"}`}>
 
                 {/* ─── スティッキーヘッダー ─── */}
                 <header className={`sticky top-0 z-10 border-b px-4 h-14 flex items-center transition-colors duration-300 ${
                     selectMode
-                        ? "bg-gray-900/90 backdrop-blur-md border-gray-800"
-                        : "bg-white/90 backdrop-blur-md border-gray-100"
+                        ? "bg-slate-800/95 backdrop-blur-md border-slate-700"
+                        : "bg-white/90 backdrop-blur-md border-slate-100"
                 }`}>
                     {selectMode ? (
-                        /* 選択モードヘッダー（暗い背景で切り替わったことを明示） */
+                        /* 選択モードヘッダー */
                         <>
                             <button
                                 onClick={exitSelectMode}
-                                className="text-sm font-semibold text-gray-300 hover:text-white transition mr-auto"
+                                className="text-sm font-semibold text-slate-300 hover:text-white transition mr-auto"
                             >
                                 キャンセル
                             </button>
@@ -285,7 +285,7 @@ export default function HistoryPage() {
                             </span>
                             <button
                                 onClick={allSelected ? deselectAll : selectAll}
-                                className="text-sm font-semibold text-orange-300 hover:text-orange-200 transition ml-auto"
+                                className="text-sm font-semibold text-emerald-300 hover:text-emerald-200 transition ml-auto"
                             >
                                 {allSelected ? "全解除" : "全選択"}
                             </button>
@@ -295,13 +295,13 @@ export default function HistoryPage() {
                         <>
                             <Link
                                 href="/"
-                                className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition text-gray-600 mr-1"
+                                className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-100 transition text-slate-600 mr-1"
                             >
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                                 </svg>
                             </Link>
-                            <h1 className="font-bold text-gray-900 text-base">スキャン履歴</h1>
+                            <h1 className="font-bold text-slate-800 text-base">スキャン履歴</h1>
                             <div className="flex items-center gap-1 ml-auto">
                                 {prints.length > 0 && (
                                     <>
@@ -314,7 +314,7 @@ export default function HistoryPage() {
                                         </button>
                                         <button
                                             onClick={enterSelectMode}
-                                            className="h-9 px-3 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition"
+                                            className="h-9 px-3 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
                                         >
                                             選択
                                         </button>
@@ -338,7 +338,7 @@ export default function HistoryPage() {
 
                     {/* 削除中インジケータ */}
                     {deleting && (
-                        <div className="mb-4 bg-orange-50 border border-orange-200 rounded-2xl px-4 py-2.5 text-orange-600 text-sm flex items-center gap-2">
+                        <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-2.5 text-emerald-700 text-sm flex items-center gap-2">
                             <svg className="animate-spin h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24">
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
@@ -349,12 +349,12 @@ export default function HistoryPage() {
 
                     {/* ローディング */}
                     {loading && (
-                        <div className="flex flex-col items-center gap-3 mt-20 text-orange-300">
+                        <div className="flex flex-col items-center gap-3 mt-20 text-emerald-300">
                             <svg className="animate-spin h-9 w-9" fill="none" viewBox="0 0 24 24">
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                             </svg>
-                            <p className="text-sm text-gray-400">読み込み中...</p>
+                            <p className="text-sm text-slate-400">読み込み中...</p>
                         </div>
                     )}
 
@@ -368,16 +368,16 @@ export default function HistoryPage() {
                     {/* 空状態 */}
                     {!loading && !fetchError && prints.length === 0 && (
                         <div className="mt-20 flex flex-col items-center gap-4 text-center">
-                            <div className="w-20 h-20 bg-orange-100 rounded-3xl flex items-center justify-center">
+                            <div className="w-20 h-20 bg-emerald-100 rounded-3xl flex items-center justify-center">
                                 <span className="text-4xl">📭</span>
                             </div>
                             <div>
-                                <p className="text-lg font-bold text-gray-800">履歴がまだありません</p>
-                                <p className="text-sm text-gray-500 mt-1">プリントをアップロードすると自動的に保存されます</p>
+                                <p className="text-lg font-bold text-slate-800">履歴がまだありません</p>
+                                <p className="text-sm text-slate-500 mt-1">プリントをアップロードすると自動的に保存されます</p>
                             </div>
                             <Link
                                 href="/upload"
-                                className="mt-2 flex items-center gap-2 h-12 px-6 rounded-2xl bg-orange-500 text-white font-bold text-sm shadow-lg shadow-orange-200 hover:bg-orange-600 transition"
+                                className="mt-2 flex items-center gap-2 h-12 px-6 rounded-2xl bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-200 hover:bg-emerald-600 transition"
                             >
                                 <span>📷</span>
                                 プリントをスキャン
@@ -403,8 +403,8 @@ export default function HistoryPage() {
                                         >
                                             <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
                                                 isSelected
-                                                    ? "bg-orange-500 border-orange-500 text-white"
-                                                    : "border-gray-400 bg-white/80"
+                                                    ? "bg-emerald-500 border-emerald-500 text-white"
+                                                    : "border-slate-400 bg-white/80"
                                             }`}>
                                                 {isSelected && (
                                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -416,15 +416,15 @@ export default function HistoryPage() {
                                     )}
 
                                     {/* カード本体 */}
-                                    <div className={`flex-1 bg-white rounded-2xl shadow-sm border overflow-hidden transition-all duration-150 ${
+                                    <div className={`flex-1 bg-white rounded-2xl overflow-hidden transition-all duration-150 ${
                                         isSelected && selectMode
-                                            ? "border-orange-400 ring-2 ring-orange-300/50"
-                                            : "border-gray-100"
+                                            ? "shadow-md ring-2 ring-emerald-400/60 border border-emerald-200"
+                                            : "shadow-sm border border-slate-100"
                                     }`}>
                                         {/* 画像エリア */}
                                         {print.image_url ? (
                                             selectMode ? (
-                                                <div className="relative w-full overflow-hidden bg-gray-50">
+                                                <div className="relative w-full overflow-hidden bg-slate-50">
                                                     <Image
                                                         src={print.image_url}
                                                         alt="プリント画像"
@@ -439,7 +439,7 @@ export default function HistoryPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => openModal(print.image_url)}
-                                                    className="relative w-full block overflow-hidden bg-gray-50 active:brightness-95 transition"
+                                                    className="relative w-full block overflow-hidden bg-slate-50 active:brightness-95 transition"
                                                     aria-label="画像を拡大表示"
                                                 >
                                                     <Image
@@ -460,7 +460,7 @@ export default function HistoryPage() {
                                                 </button>
                                             )
                                         ) : (
-                                            <div className="w-full h-20 bg-orange-50 flex items-center justify-center text-gray-400 text-sm gap-2">
+                                            <div className="w-full h-20 bg-emerald-50 flex items-center justify-center text-slate-400 text-sm gap-2">
                                                 <span className="text-xl">📄</span>
                                                 <span>画像なし</span>
                                             </div>
@@ -468,19 +468,19 @@ export default function HistoryPage() {
 
                                         {/* メタバー */}
                                         <div
-                                            className="flex items-center justify-between px-4 py-2.5 border-b border-gray-50"
+                                            className="flex items-center justify-between px-4 py-2.5 border-b border-slate-50"
                                             onClick={(e) => e.stopPropagation()}
                                         >
-                                            <p className="text-xs text-gray-400">{formatDate(print.created_at)}</p>
+                                            <p className="text-xs text-slate-400">{formatDate(print.created_at)}</p>
                                             <div className="flex items-center gap-2">
-                                                <span className="bg-orange-100 text-orange-600 text-xs font-bold px-2.5 py-1 rounded-full">
+                                                <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full">
                                                     {print.events?.length ?? 0}件の行事
                                                 </span>
                                                 {!selectMode && (
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); handleDeleteSingle(print.id); }}
                                                         disabled={deleting}
-                                                        className="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition disabled:opacity-40"
+                                                        className="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition disabled:opacity-40"
                                                         aria-label="削除"
                                                     >
                                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -493,25 +493,25 @@ export default function HistoryPage() {
 
                                         {/* 行事リスト */}
                                         <div
-                                            className="divide-y divide-gray-50"
+                                            className="divide-y divide-slate-50"
                                             onClick={(e) => e.stopPropagation()}
                                         >
                                             {(print.events ?? []).map((ev, idx) => (
                                                 <div key={ev.id} className="px-4 py-3.5">
                                                     <div className="flex items-start gap-3">
-                                                        <span className="flex-shrink-0 w-6 h-6 bg-orange-100 text-orange-600 rounded-full text-xs font-bold flex items-center justify-center mt-0.5">
+                                                        <span className="flex-shrink-0 w-6 h-6 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold flex items-center justify-center mt-0.5">
                                                             {idx + 1}
                                                         </span>
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex flex-wrap items-center gap-2 mb-1">
-                                                                <p className="font-semibold text-gray-900 text-sm leading-tight">{ev.title || "不明"}</p>
+                                                                <p className="font-semibold text-slate-800 text-sm leading-tight">{ev.title || "不明"}</p>
                                                                 {ev.needs_reminder && (
                                                                     <span className="text-xs bg-rose-100 text-rose-600 font-semibold px-2 py-0.5 rounded-full">
                                                                         🔔 要通知
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                                                            <div className="flex flex-wrap gap-3 text-xs text-slate-500">
                                                                 {ev.date && (
                                                                     <span className="flex items-center gap-1">
                                                                         <span>📅</span>{ev.date}
@@ -528,7 +528,7 @@ export default function HistoryPage() {
                                                                     <summary className="text-xs text-amber-600 font-semibold cursor-pointer hover:text-amber-700">
                                                                         💡 アドバイスを見る
                                                                     </summary>
-                                                                    <p className="mt-1.5 text-xs text-gray-600 whitespace-pre-line leading-relaxed bg-amber-50 rounded-xl p-2.5 border border-amber-100">
+                                                                    <p className="mt-1.5 text-xs text-slate-600 whitespace-pre-line leading-relaxed bg-amber-50 rounded-xl p-2.5 border border-amber-100">
                                                                         {ev.advice}
                                                                     </p>
                                                                 </details>
@@ -546,26 +546,25 @@ export default function HistoryPage() {
                 </div>
             </div>
 
-            {/* ─── FAB：新規スキャン（通常モードのみ） ─── */}
+            {/* ─── FAB：新規スキャン ─── */}
             {!selectMode && (
                 <Link
                     href="/upload"
-                    className="fixed bottom-6 right-6 z-20 w-16 h-16 bg-orange-500 rounded-full shadow-xl shadow-orange-300/60 text-2xl flex items-center justify-center text-white hover:bg-orange-600 active:scale-95 transition"
+                    className="fixed bottom-6 right-6 z-20 w-16 h-16 bg-emerald-500 rounded-full shadow-xl shadow-emerald-300/50 text-2xl flex items-center justify-center text-white hover:bg-emerald-600 active:scale-95 transition"
                     aria-label="新規スキャン"
                 >
                     📷
                 </Link>
             )}
 
-            {/* ─── 選択モードのボトムアクションバー（下から出現） ─── */}
+            {/* ─── 選択モードのボトムアクションバー ─── */}
             <div className={`fixed inset-x-0 bottom-0 z-20 transition-transform duration-300 ease-in-out ${
                 selectMode ? "translate-y-0" : "translate-y-full"
             }`}>
-                <div className="bg-gray-900 border-t border-gray-800 px-4 pt-3 pb-8 shadow-2xl">
+                <div className="bg-slate-800 border-t border-slate-700 px-4 pt-3 pb-8 shadow-2xl">
                     <div className="max-w-2xl mx-auto">
-                        {/* 件数・操作テキスト */}
                         <div className="flex items-center justify-between mb-3">
-                            <span className="text-sm text-gray-400">
+                            <span className="text-sm text-slate-400">
                                 {selectedIds.size > 0
                                     ? `${selectedIds.size}件を選択中`
                                     : "項目を選んでください"}
@@ -573,17 +572,15 @@ export default function HistoryPage() {
                             <button
                                 onClick={handleDeleteAll}
                                 disabled={deleting}
-                                className="text-xs text-gray-500 hover:text-gray-300 transition disabled:opacity-40"
+                                className="text-xs text-slate-500 hover:text-slate-300 transition disabled:opacity-40"
                             >
                                 全て削除
                             </button>
                         </div>
-
-                        {/* 削除ボタン */}
                         <button
                             onClick={handleDeleteSelected}
                             disabled={selectedIds.size === 0 || deleting}
-                            className="w-full h-14 bg-rose-500 text-white font-bold text-base rounded-2xl shadow-lg shadow-rose-900/50 disabled:opacity-40 disabled:cursor-not-allowed transition hover:bg-rose-600 active:scale-[0.98]"
+                            className="w-full h-14 bg-rose-500 text-white font-bold text-base rounded-2xl shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition hover:bg-rose-600 active:scale-[0.98]"
                         >
                             {selectedIds.size > 0
                                 ? `🗑️ ${selectedIds.size}件を削除する`

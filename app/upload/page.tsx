@@ -169,26 +169,30 @@ export default function UploadPage() {
         }
     };
 
-    const isImage = file && (file.type.startsWith("image/") || file.name.toLowerCase().endsWith(".heic") || file.name.toLowerCase().endsWith(".heif"));
+    const isImage = file && (
+        file.type.startsWith("image/") ||
+        file.name.toLowerCase().endsWith(".heic") ||
+        file.name.toLowerCase().endsWith(".heif")
+    );
 
     return (
-        <form onSubmit={handleSubmit} className="min-h-screen bg-gradient-to-b from-orange-50 to-white flex flex-col">
+        <form onSubmit={handleSubmit} className="min-h-screen bg-gradient-to-b from-emerald-50/40 to-slate-50 flex flex-col">
 
             {/* ─── スティッキーヘッダー ─── */}
-            <header className="sticky top-0 z-10 bg-white/90 backdrop-blur-md border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+            <header className="sticky top-0 z-10 bg-white/90 backdrop-blur-md border-b border-slate-100 px-4 h-14 flex items-center justify-between">
                 <Link
                     href="/"
-                    className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 active:bg-gray-200 transition text-gray-600"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-100 active:bg-slate-200 transition text-slate-600"
                     aria-label="戻る"
                 >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                     </svg>
                 </Link>
-                <h1 className="font-bold text-gray-900 text-base">プリントをスキャン</h1>
+                <h1 className="font-bold text-slate-800 text-base">プリントをスキャン</h1>
                 <Link
                     href="/history"
-                    className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-orange-50 active:bg-orange-100 transition text-orange-500"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-emerald-50 active:bg-emerald-100 transition text-emerald-600"
                     aria-label="履歴"
                 >
                     <span className="text-lg">📚</span>
@@ -201,13 +205,13 @@ export default function UploadPage() {
                 {/* ── 写真選択エリア ── */}
                 {!file ? (
                     <label className="block cursor-pointer">
-                        <div className="w-full aspect-[4/3] bg-orange-50 border-2 border-dashed border-orange-200 rounded-2xl flex flex-col items-center justify-center gap-3 hover:bg-orange-100 active:bg-orange-100 transition">
-                            <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center">
+                        <div className="w-full aspect-[4/3] bg-emerald-50 border-2 border-dashed border-emerald-200 rounded-2xl flex flex-col items-center justify-center gap-3 hover:bg-emerald-100/50 active:bg-emerald-100/50 transition">
+                            <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center">
                                 <span className="text-3xl">📷</span>
                             </div>
                             <div className="text-center">
-                                <p className="font-bold text-orange-600 text-base">タップして写真を選択</p>
-                                <p className="text-xs text-gray-400 mt-1">JPG・PNG・HEIC（iPhone）に対応</p>
+                                <p className="font-bold text-emerald-700 text-base">タップして写真を選択</p>
+                                <p className="text-xs text-slate-400 mt-1">JPG・PNG・HEIC（iPhone）に対応</p>
                             </div>
                         </div>
                         <input
@@ -220,7 +224,7 @@ export default function UploadPage() {
                     </label>
                 ) : (
                     /* 選択済み：プレビュー表示 */
-                    <div className="relative rounded-2xl overflow-hidden bg-gray-100 shadow-sm">
+                    <div className="relative rounded-2xl overflow-hidden bg-slate-100 shadow-sm">
                         {isImage ? (
                             <Image
                                 src={previewUrl}
@@ -230,12 +234,11 @@ export default function UploadPage() {
                                 className="w-full h-auto object-contain max-h-72"
                             />
                         ) : (
-                            <div className="flex items-center justify-center h-24 bg-orange-50 text-gray-500 text-sm gap-2">
+                            <div className="flex items-center justify-center h-24 bg-emerald-50 text-slate-500 text-sm gap-2">
                                 <span className="text-2xl">📄</span>
                                 <span>PDFが選択されました</span>
                             </div>
                         )}
-                        {/* 閉じるボタン */}
                         {!loading && (
                             <button
                                 type="button"
@@ -246,14 +249,13 @@ export default function UploadPage() {
                                 ✕
                             </button>
                         )}
-                        {/* ファイル名バッジ */}
                         {!loading && (
                             <div className="absolute bottom-2.5 left-2.5 flex flex-wrap items-center gap-1.5">
                                 <span className="bg-black/50 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full max-w-[160px] truncate">
                                     {file.name}
                                 </span>
                                 {(file.name.toLowerCase().endsWith(".heic") || file.name.toLowerCase().endsWith(".heif")) && (
-                                    <span className="bg-orange-500/90 text-white text-xs font-semibold px-2 py-1 rounded-full">
+                                    <span className="bg-teal-600/90 text-white text-xs font-semibold px-2 py-1 rounded-full">
                                         HEIC→JPEG
                                     </span>
                                 )}
@@ -265,19 +267,19 @@ export default function UploadPage() {
                 {/* ── 圧縮情報バッジ ── */}
                 {compressResult && !loading && (
                     <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <div className="flex items-center gap-1.5 bg-sky-50 border border-sky-200 text-sky-700 text-xs font-medium px-3 py-1.5 rounded-full">
+                        <div className="flex items-center gap-1.5 bg-teal-50 border border-teal-200 text-teal-700 text-xs font-medium px-3 py-1.5 rounded-full">
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             {compressResult.originalSizeMB.toFixed(1)}MB → {compressResult.compressedSizeMB.toFixed(1)}MB
                         </div>
                         {compressResult.wasConverted && (
-                            <span className="bg-orange-50 border border-orange-200 text-orange-600 text-xs font-semibold px-3 py-1.5 rounded-full">
+                            <span className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-full">
                                 HEIC→JPEG変換済み
                             </span>
                         )}
                         {compressResult.wasResized && (
-                            <span className="bg-purple-50 border border-purple-200 text-purple-600 text-xs font-medium px-3 py-1.5 rounded-full">
+                            <span className="bg-slate-100 border border-slate-200 text-slate-600 text-xs font-medium px-3 py-1.5 rounded-full">
                                 最大2000pxにリサイズ
                             </span>
                         )}
@@ -294,25 +296,25 @@ export default function UploadPage() {
 
                 {/* ── 行事情報なしの保存完了 ── */}
                 {noEventsFound && !loading && (
-                    <div className="mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="mt-6 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                         <div className="px-5 py-4">
                             <div className="flex items-start gap-3.5">
-                                <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
                                     <span className="text-xl">📷</span>
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-gray-900">画像を保存しました</h3>
-                                    <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                                    <h3 className="font-bold text-slate-800">画像を保存しました</h3>
+                                    <p className="text-sm text-slate-500 mt-1 leading-relaxed">
                                         詳細情報は見つかりませんでしたが、画像は履歴に保存されました。
                                         明るい場所での再撮影をお試しください。
                                     </p>
                                 </div>
                             </div>
                             {saved && (
-                                <div className="mt-4 flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 text-sm text-green-700">
+                                <div className="mt-4 flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 text-sm text-emerald-700">
                                     <span>✅</span>
                                     <span className="font-medium">履歴に保存されました</span>
-                                    <Link href="/history" className="ml-auto text-green-600 underline underline-offset-2 text-xs font-semibold">
+                                    <Link href="/history" className="ml-auto text-emerald-600 underline underline-offset-2 text-xs font-semibold">
                                         履歴を見る →
                                     </Link>
                                 </div>
@@ -329,12 +331,11 @@ export default function UploadPage() {
                 {/* ── 行事抽出結果 ── */}
                 {results.length > 0 && (
                     <div className="mt-6">
-                        {/* 保存ステータス */}
                         {saved && (
-                            <div className="mb-4 flex items-center gap-2 bg-green-50 border border-green-200 rounded-2xl px-4 py-3 text-sm text-green-700 font-medium">
+                            <div className="mb-4 flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 text-sm text-emerald-700 font-medium">
                                 <span>✅</span>
                                 <span>履歴に保存されました</span>
-                                <Link href="/history" className="ml-auto text-green-600 underline underline-offset-2 text-xs font-semibold">
+                                <Link href="/history" className="ml-auto text-emerald-600 underline underline-offset-2 text-xs font-semibold">
                                     履歴を見る →
                                 </Link>
                             </div>
@@ -360,8 +361,8 @@ export default function UploadPage() {
                         )}
 
                         <div className="flex items-center gap-2 mb-4">
-                            <h2 className="text-lg font-bold text-gray-900">抽出結果</h2>
-                            <span className="bg-orange-100 text-orange-600 text-xs font-bold px-2.5 py-1 rounded-full">
+                            <h2 className="text-lg font-bold text-slate-800">抽出結果</h2>
+                            <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full">
                                 {results.length}件の行事
                             </span>
                         </div>
@@ -385,12 +386,11 @@ export default function UploadPage() {
             </main>
 
             {/* ─── 固定ボトムバー（スキャンCTA） ─── */}
-            <div className="fixed bottom-0 left-0 right-0 z-10 bg-white/90 backdrop-blur-md border-t border-gray-100 px-4 py-4">
+            <div className="fixed bottom-0 left-0 right-0 z-10 bg-white/90 backdrop-blur-md border-t border-slate-100 px-4 py-4">
                 <div className="max-w-lg mx-auto space-y-2">
-                    {/* 写真変更リンク（選択済みの場合のみ） */}
                     {file && !loading && (
                         <div className="flex justify-center">
-                            <label className="text-sm text-orange-500 font-semibold cursor-pointer hover:text-orange-600 transition">
+                            <label className="text-sm text-emerald-600 font-semibold cursor-pointer hover:text-emerald-700 transition">
                                 別の写真を選ぶ
                                 <input
                                     type="file"
@@ -401,12 +401,10 @@ export default function UploadPage() {
                             </label>
                         </div>
                     )}
-
-                    {/* メインCTAボタン */}
                     <button
                         type="submit"
                         disabled={loading || !file}
-                        className="w-full h-14 rounded-2xl bg-orange-500 text-white font-bold text-base shadow-lg shadow-orange-200 hover:bg-orange-600 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2"
+                        className="w-full h-14 rounded-2xl bg-emerald-500 text-white font-bold text-base shadow-lg shadow-emerald-200 hover:bg-emerald-600 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2"
                     >
                         {loading ? (
                             <>

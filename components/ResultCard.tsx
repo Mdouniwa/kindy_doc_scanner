@@ -23,15 +23,15 @@ export default function ResultCard({
     const showBadge = total !== undefined && total > 1 && index !== undefined;
 
     return (
-        <div className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="w-full bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             {/* カードヘッダー */}
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 bg-orange-50/60">
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-50 bg-emerald-50/60">
                 {showBadge && (
-                    <span className="flex-shrink-0 w-6 h-6 bg-orange-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                    <span className="flex-shrink-0 w-6 h-6 bg-emerald-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
                         {index}
                     </span>
                 )}
-                <p className="flex-1 font-bold text-gray-900 text-base leading-snug truncate">
+                <p className="flex-1 font-bold text-slate-800 text-base leading-snug truncate">
                     {title || "不明"}
                 </p>
                 {needsReminder && (
@@ -42,12 +42,12 @@ export default function ResultCard({
             </div>
 
             {/* 日付・時間 */}
-            <div className="grid grid-cols-2 gap-px bg-gray-50 border-b border-gray-50">
+            <div className="grid grid-cols-2 gap-px bg-slate-50 border-b border-slate-50">
                 <div className="bg-white px-4 py-3 flex items-start gap-2.5">
                     <span className="text-xl flex-shrink-0 mt-0.5">📅</span>
                     <div className="min-w-0">
-                        <p className="text-xs text-gray-400 font-semibold mb-0.5">日付</p>
-                        <p className="text-sm font-bold text-gray-900 break-words leading-snug">
+                        <p className="text-xs text-slate-400 font-semibold mb-0.5">日付</p>
+                        <p className="text-sm font-bold text-slate-800 break-words leading-snug">
                             {date || "不明"}
                         </p>
                     </div>
@@ -55,21 +55,19 @@ export default function ResultCard({
                 <div className="bg-white px-4 py-3 flex items-start gap-2.5">
                     <span className="text-xl flex-shrink-0 mt-0.5">🕐</span>
                     <div className="min-w-0">
-                        <p className="text-xs text-gray-400 font-semibold mb-0.5">時間</p>
-                        <p className="text-sm font-bold text-gray-900 break-words leading-snug">
+                        <p className="text-xs text-slate-400 font-semibold mb-0.5">時間</p>
+                        <p className="text-sm font-bold text-slate-800 break-words leading-snug">
                             {time || "未記載"}
                         </p>
                     </div>
                 </div>
             </div>
 
-            {/* リマインダー（複数行事でないときのみ表示） */}
+            {/* リマインダー（複数行事でないときのみ） */}
             {!showBadge && (
-                <div className={`px-4 py-3 flex items-center gap-2.5 border-b border-gray-50 ${
-                    needsReminder ? "bg-rose-50" : ""
-                }`}>
+                <div className={`px-4 py-3 flex items-center gap-2.5 border-b border-slate-50 ${needsReminder ? "bg-rose-50" : ""}`}>
                     <span className="text-xl">{needsReminder ? "🔔" : "🔕"}</span>
-                    <span className={`text-sm font-semibold ${needsReminder ? "text-rose-600" : "text-gray-400"}`}>
+                    <span className={`text-sm font-semibold ${needsReminder ? "text-rose-600" : "text-slate-400"}`}>
                         {needsReminder ? "要通知（重要な行事です）" : "通知不要"}
                     </span>
                 </div>
@@ -92,7 +90,7 @@ export default function ResultCard({
                         </svg>
                     </summary>
                     <div className="px-4 pb-4 pt-3 bg-white border-t border-amber-100">
-                        <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">{advice}</p>
+                        <p className="text-sm text-slate-600 whitespace-pre-line leading-relaxed">{advice}</p>
                     </div>
                 </details>
             )}
