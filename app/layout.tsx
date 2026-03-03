@@ -18,13 +18,15 @@ export const metadata: Metadata = {
   description:
     "プリントを撮影してアップロードするだけで、行事情報を自動抽出・保存します",
   manifest: "/manifest.json",
-  icons: {
-    apple: "/icon-192x192.png",
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "幼稚園プリント",
+  },
+  icons: {
+    apple: [
+      { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
+    ],
   },
   formatDetection: {
     telephone: false,
