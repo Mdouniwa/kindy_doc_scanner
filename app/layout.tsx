@@ -18,10 +18,13 @@ export const metadata: Metadata = {
   description:
     "プリントを撮影してアップロードするだけで、行事情報を自動抽出・保存します",
   manifest: "/manifest.json",
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "プリント管理",
+    title: "幼稚園プリント",
   },
   formatDetection: {
     telephone: false,
@@ -43,7 +46,10 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <head>
-        <link rel="apple-touch-icon" href="/icon-192x192.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="幼稚園プリント" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

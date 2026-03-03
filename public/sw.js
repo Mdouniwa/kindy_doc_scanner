@@ -1,5 +1,5 @@
 const CACHE_NAME = "kindy-doc-scanner-v1";
-const PRECACHE_URLS = ["/", "/icon-192x192.png", "/icon-512x512.png"];
+const PRECACHE_URLS = ["/", "/apple-touch-icon.png", "/icon-192x192.png", "/icon-512x512.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

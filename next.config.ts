@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+// PWA: public/sw.js はビルド時に public/ からそのまま出力される。
+// Next.js は public/ 内のファイルを自動で静的アセットとして配信する。
 const nextConfig: NextConfig = {
     headers: async () => [
         {
