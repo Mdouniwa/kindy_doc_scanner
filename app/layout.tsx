@@ -24,9 +24,8 @@ export const metadata: Metadata = {
     title: "幼稚園プリント",
   },
   icons: {
-    apple: [
-      { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
-    ],
+    icon: "/icon-192x192.png",
+    apple: "/icon-192x192.png",
   },
   formatDetection: {
     telephone: false,
